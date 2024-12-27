@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ساخت DNS و WireGuard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #000;
+            color: #fff;
+            text-align: center;
+            padding: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            background-color: #444;
+            color: white;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+        }
+        button:hover {
+            background-color: #666;
+            transform: scale(1.1);
+        }
+        textarea {
+            width: 90%;
+            height: 150px;
+            margin: 20px auto;
+            font-size: 14px;
+            background-color: #222;
+            color: #0f0;
+            border: 2px solid #0f0;
+            border-radius: 5px;
+            padding: 10px;
+            resize: none;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+        }
+        textarea:focus {
+            outline: none;
+            border-color: #34c759;
+        }
+        h1, h2, h3 {
+            color: #fff;
+        }
+        #dnsContainer, #wireguardContainer {
+            background: #111;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.7);
+            margin: 20px auto;
+            width: 80%;
+        }
+        .section-header {
+            font-size: 20px;
+            margin-bottom: 10px;
+            color: #34c759;
+        }
+    </style>
+</head>
+<body>
+    <h1>ساخت DNS و WireGuard</h1>
+    
+    <h2>انتخاب کشور:</h2>
+    <button onclick="selectCountry('UAE')">امارات</button>
+    <button onclick="selectCountry('Germany')">آلمان</button>
+    <button onclick="selectCountry('UK')">انگلیس</button>
+
+    <h3>کشور انتخاب شده: <span id="selectedCountry">هیچ‌کدام</span></h3>
+
+    <div id="dnsContainer">
+        <h3 class="section-header">تولید DNS</h3>
+        <button onclick="generateDNS()">تولید DNS</button>
+        <textarea id="dnsOutput" placeholder="DNS های تولید شده اینجا نمایش داده می‌شوند..." readonly></textarea>
+        <button onclick="saveToClipboard('dnsOutput')">کپی DNS در کیبورد</button>
+    </div>
+
+    <div id="wireguardContainer">
+        <h3 class="section-header">ساخت WireGuard</h3>
+        <button onclick="generateWireGuard()">ساخت</button>
+        <textarea id="wireguardOutput" placeholder="پیکربندی WireGuard اینجا نمایش داده می‌شود..." readonly></textarea>
+        <button onclick="saveToClipboard('wireguardOutput')">کپی WireGuard در کیبورد</button>
+    </div>
+
+    <script>
+        let selectedCountry = "";
+
+        function selectCountry(country) {
+            selectedCountry = country;
+            document.getElementById("selectedCountry").textContent = country;
+        }
+
+        function generateDNS() {
+            if (!selectedCountry) {
+                alert("لطفاً یک کشور را انتخاب کنید.");
+                return;
+            }
+
+            let dns = "";
+            switch (selectedCountry) {
+                case "UAE":
+                    dns = `80.227.${random(0, 255)}.${random(0, 255)}\n2001:8f8:${randomHex(4)}:${randomHex(4)}:${randomHex(4)}:${randomHex(4)}:${randomHex(4)}:${randomHex(4)}`;
+                    break;
+                case "Germany":
+                    dns = `213.131.${random(0, 255)}.${random(0, 255)}\n2001:67c:6ec:${randomHex(4)}:${randomHex(4)}:${randomHex(4)}:${randomHex(4)}:${randomHex(4)}`;
+                    break;
+                case "UK":
+                    dns = `139.162.${random(0, 255)}.${random(0, 255)}\n2a02:b80::${randomHex(4)}:${randomHex(4)}:${randomHex(4)}:${randomHex(4)}`;
+                    break;
+                default:
+                    dns = "کشور انتخاب نشده است.";
+            }
+            document.getElementById("dnsOutput").value = dns;
+        }
+
+        function generateWireGuard() {
+            if (!selectedCountry) {
+                alert("لطفاً یک کشور را انتخاب کنید.");
+                return;
+            }
+
+            let address = "";
+            let dnsServer = "10.202.10.10";
+            let mtu = random(1200, 1500); // MTU رندوم
+            const privateKey = "AHWHJhle4VIwgysYCl6jChaEVrgxtNjlwyOSflNiPXI=";
+
+            switch (selectedCountry) {
+                case "UAE":
+                    address = `80.227.${random(0, 255)}.${random(0, 255)}`;
+                    break;
+                case "Germany":
+                    address = `213.131.${random(0, 255)}.${random(0, 255)}`;
+                    break;
+                case "UK":
+                    address = `139.162.${random(0, 255)}.${random(0, 255)}`;
+                    break;
+            }
+
+            const config = `
+[Interface]
+Address = ${address}/32
+DNS = ${dnsServer}
+MTU = ${mtu}
+PrivateKey = ${privateKey}
+            `.trim();
+
+            document.getElementById("wireguardOutput").value = config;
+        }
+
+        function saveToClipboard(id) {
+            const output = document.getElementById(id);
+            if (output.value) {
+                navigator.clipboard.writeText(output.value).then(() => {
+                    alert(id === "dnsOutput" ? "DNS در کیبورد ذخیره شد!" : "پیکربندی WireGuard در کیبورد ذخیره شد!");
+                });
+            } else {
+                alert(id === "dnsOutput" ? "هیچ DNS برای ذخیره وجود ندارد." : "هیچ پیکربندی WireGuard برای ذخیره وجود ندارد.");
+            }
+        }
+
+        function random(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
+        function randomHex(length) {
+            let result = "";
+            const chars = "0123456789abcdef";
+            for (let i = 0; i < length; i++) {
+                result += chars[Math.floor(Math.random() * chars.length)];
+            }
+            return result;
+        }
+    </script>
+</body>
+</html>
